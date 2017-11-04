@@ -20,16 +20,41 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/user"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ClusterHQ/fli/dl/testutils"
-	"github.com/ClusterHQ/fli/securefilepath"
+	"github.com/ScatterHQ/go-securefilepath"
 )
+
+// RunningAsRoot returns true if it is running as a super user
+func runningAsRoot() bool {
+	//are we running as root
+	usr, err := user.Current()
+	if err != nil {
+		fmt.Println("Failed to get current user with the following error:", err)
+		return false
+	}
+
+	uid, err := strconv.Atoi(usr.Uid)
+	if err != nil {
+		fmt.Println("Failed to get uid with the following error:", err)
+		return false
+	}
+
+	gid, err := strconv.Atoi(usr.Gid)
+	if err != nil {
+		fmt.Println("Failed to get gid with the following error:", err)
+		return false
+	}
+
+	return uid == 0 && gid == 0
+}
 
 type ByPath []securefilepath.SecureFilePath
 
@@ -223,7 +248,7 @@ func TestChildrenOfNonExtant(t *testing.T) {
 // TestChildrenWithoutPermission verifies that SecureFilePath.Children returns
 // an error when used on a path to which we do not have read permission.
 func TestChildrenWithoutPermission(t *testing.T) {
-	if testutils.RunningAsRoot() {
+	if runningAsRoot() {
 		t.Skip("Skipped because test running as root.")
 	}
 
@@ -309,7 +334,7 @@ func TestExistsTrue(t *testing.T) {
 // TestExists verifies that SecureFilePath.Exists returns an error if the
 // underlying filesystem returns an error when checking for existance.
 func TestExistsError(t *testing.T) {
-	if testutils.RunningAsRoot() {
+	if runningAsRoot() {
 		t.Skip("Skipped because test running as root.")
 	}
 
